@@ -89,13 +89,13 @@ const HomePage = () => {
     {
       title: "Alaska 2022 Special General Election",
       description: "Experience Consensus Choice Voting in a real election",
-      link: "/results/alaska-2022",
+      link: "/results/alaska2022",
     },
-    {
-      title: "Sample Election", 
-      description: "View an election to see how the voting method works",
-      link: "/results/sample-election",
-    },
+    //{
+    //  title: "Sample Election", 
+    //  description: "View an simple election to see how Consensus Choice Voting works",
+    //  link: "/results/sample-election",
+    //},
     {
       title: "Favorite Ice Cream",
       description: "Join our ongoing poll to rank your favorite ice cream",

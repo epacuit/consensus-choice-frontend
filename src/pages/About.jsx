@@ -241,7 +241,7 @@ const About = () => {
             </Grid>
           </Grid>
           
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
+          {/*<Box sx={{ mt: 3, textAlign: 'center' }}>
             <Button
               variant="contained"
               onClick={() => navigate('/results/ice-cream-example')}
@@ -249,7 +249,7 @@ const About = () => {
             >
               Try This Example
             </Button>
-          </Box>
+          </Box>*/}
         </Box>
 
         {/* IRV vs Consensus Choice */}
@@ -337,7 +337,7 @@ const About = () => {
             </Grid>
           </Grid>
           
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
+          {/*<Box sx={{ mt: 3, textAlign: 'center' }}>
             <Button
               variant="contained"
               onClick={() => navigate('/results/center-squeeze-example')}
@@ -345,7 +345,7 @@ const About = () => {
             >
               Try This Example
             </Button>
-          </Box>
+          </Box>*/}
         </Box>
 
         {/* Use for Your Group */}
