@@ -16,6 +16,7 @@ import About from './pages/About';
 import Feedback from './pages/Feedback'; 
 import TestWinnerExplanation from './pages/TestWinnerExplanation'; 
 import Footer from './components/Footer'; // Import the Footer component
+import ScrollToTop from './components/ScrollToTop'; // Import ScrollToTop component
 
 // Inside your App component's Router:
 function App() {
@@ -23,6 +24,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
+        <ScrollToTop />
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <NavigationBar />
           
