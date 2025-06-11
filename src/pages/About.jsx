@@ -403,24 +403,6 @@ const About = () => {
           </Box>
         </Box>
 
-        {/* Footer Links */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
-          <Button
-            href="https://betterchoices.vote"
-            target="_blank"
-            rel="noopener"
-            startIcon={<GroupsIcon />}
-          >
-            Learn More
-          </Button>
-          
-          <Button
-            onClick={() => navigate('/feedback')}
-            startIcon={<QuestionIcon />}
-          >
-            Submit Feedback
-          </Button>
-        </Box>
       </Container>
     </Box>
   );

@@ -13,9 +13,15 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  ListItemButton,
   Link,
   AppBar,
   Toolbar,
+  IconButton,
+  Drawer,
+  Divider,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   HowToVote as VoteIcon,
@@ -26,35 +32,215 @@ import {
   Public as PublicIcon,
   Lock as LockIcon,
   CloudUpload as UploadIcon,
+  Menu as MenuIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import betterChoicesIcon from '../assets/BC4D-wht.png';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Helper function to check if a route is active
+  const isActiveRoute = (path) => location.pathname === path;
+  
+  const handleMobileMenuToggle = () => setMobileMenuOpen(!mobileMenuOpen);
+  const handleNavigate = (path) => { navigate(path); setMobileMenuOpen(false); };
+  
+  // Menu items configuration
+  const menuItems = [
+    { label: 'Home', path: '/' },
+    { label: 'Create', path: '/create' },
+    { label: 'About', path: '/about' },
+    { label: 'Feedback', path: '/feedback' },
+  ];
+  
+  // Desktop menu button styles
+  const menuButtonStyles = (path) => ({
+    textTransform: 'none',
+    fontSize: '24px',
+    fontWeight: 500,
+    lineHeight: '24px',
+    color: 'white',
+    position: 'relative',
+    pb: 1,
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      height: '3px',
+      backgroundColor: 'white',
+      transform: isActiveRoute(path) ? 'scaleX(1)' : 'scaleX(0)',
+      transition: 'transform 0.3s ease',
+    },
+    '&:hover::after': {
+      transform: 'scaleX(1)',
+    },
+  });
   
   // Demo polls data
   const demoPolls = [
     {
       title: "Alaska 2022 Special General Election",
-      description: "Experience how ranked choice voting played out in a real election",
+      description: "Experience Consensus Choice Voting in a real election",
       link: "/results/alaska-2022",
     },
     {
       title: "Sample Election", 
-      description: "Try a demonstration election to see how the system works",
+      description: "View an election to see how the voting method works",
       link: "/results/sample-election",
     },
     {
-      title: "Pizza Toppings",
-      description: "Join our ongoing poll to rank your favorite pizza toppings",
-      pollId: "pizza-toppings",
+      title: "Favorite Ice Cream",
+      description: "Join our ongoing poll to rank your favorite ice cream",
+      pollId: "ice-cream-poll",
       isLive: true,
     },
   ];
 
   return (
     <>
+      {/* Fixed Menu at Top */}
+      <AppBar 
+        position="fixed" 
+        elevation={0}
+        sx={{ 
+          backgroundColor: 'transparent',
+          boxShadow: 'none',
+          zIndex: theme.zIndex.appBar + 1,
+        }}
+      >
+        <Toolbar 
+          sx={{ 
+            minHeight: isMobile ? '80px !important' : '134.195px !important',
+            height: isMobile ? '80px' : '134.195px',
+            px: 0,
+            position: 'relative',
+            width: '100%',
+          }}
+        >
+          {/* Desktop Menu */}
+          {!isMobile && (
+            <Box
+              sx={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                height: '100%',
+                pr: '49.12px',
+              }}
+            >
+              <Box sx={{ display: 'flex', gap: 3 }}>
+                {menuItems.map((item) => (
+                  <Button 
+                    key={item.path}
+                    onClick={() => navigate(item.path)}
+                    sx={menuButtonStyles(item.path)}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </Box>
+            </Box>
+          )}
+
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <Box
+              sx={{
+                position: 'absolute',
+                right: '20px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <IconButton
+                color="inherit"
+                aria-label="menu"
+                onClick={handleMobileMenuToggle}
+                sx={{ fontSize: '30px', color: 'white' }}
+              >
+                <MenuIcon sx={{ fontSize: 'inherit' }} />
+              </IconButton>
+            </Box>
+          )}
+        </Toolbar>
+      </AppBar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileMenuOpen}
+        onClose={handleMobileMenuToggle}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: '280px',
+            backgroundColor: 'rgb(20, 32, 57)',
+            color: 'white',
+          },
+        }}
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          p: 2,
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'white' }}>
+            Menu
+          </Typography>
+          <IconButton
+            color="inherit"
+            onClick={handleMobileMenuToggle}
+            sx={{ color: 'white' }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        
+        <List sx={{ pt: 2 }}>
+          {menuItems.map((item, index) => (
+            <React.Fragment key={item.path}>
+              <ListItem disablePadding>
+                <ListItemButton 
+                  onClick={() => handleNavigate(item.path)}
+                  sx={{
+                    py: 2,
+                    px: 3,
+                    backgroundColor: isActiveRoute(item.path)
+                      ? 'rgba(255, 255, 255, 0.1)' 
+                      : 'transparent',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    },
+                  }}
+                >
+                  <ListItemText 
+                    primary={item.label} 
+                    primaryTypographyProps={{
+                      fontSize: '18px',
+                      fontWeight: isActiveRoute(item.path) ? 600 : 400,
+                      color: 'white',
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+              {index < menuItems.length - 1 && (
+                <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }} />
+              )}
+            </React.Fragment>
+          ))}
+        </List>
+      </Drawer>
+
       {/* Title Section - Full Width */}
       <Box 
         sx={{
@@ -63,7 +249,7 @@ const HomePage = () => {
           minHeight: { xs: '400px', md: '500px' },
           display: 'flex',
           alignItems: 'center',
-                            background: 'radial-gradient(ellipse 130% 130% at 0% 0%, #8a9abb 0%, #3a4a6c 30%, #142039 70%)',
+          background: 'radial-gradient(ellipse 130% 130% at 0% 0%, #8a9abb 0%, #3a4a6c 30%, #142039 70%)',
           position: 'relative',
         }}
       >

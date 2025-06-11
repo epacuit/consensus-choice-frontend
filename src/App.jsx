@@ -15,7 +15,7 @@ import NavigationBar from './components/NavigationBar';
 import About from './pages/About'; 
 import Feedback from './pages/Feedback'; 
 import TestWinnerExplanation from './pages/TestWinnerExplanation'; 
-
+import Footer from './components/Footer'; // Import the Footer component
 
 // Inside your App component's Router:
 function App() {
@@ -23,20 +23,26 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <NavigationBar /> {/* Add this single line */}
-
-        <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/create" element={<CreatePoll />} />
-        <Route path="/poll-created" element={<PollCreatedSuccess />} />
-          <Route path="/vote/:pollId" element={<Vote />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/feedback" element={<Feedback />} />
-          <Route path="/results/:pollId" element={<PollResults />} />
-          <Route path="/admin/:pollId" element={<Admin />} />
-          <Route path="/dev" element={<DevTools />} />
-          <Route path="/testwinnerexplanation" element={<TestWinnerExplanation />} />
-        </Routes>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <NavigationBar />
+          
+          <Box component="main" sx={{ flexGrow: 1 }}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/create" element={<CreatePoll />} />
+              <Route path="/poll-created" element={<PollCreatedSuccess />} />
+              <Route path="/vote/:pollId" element={<Vote />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route path="/results/:pollId" element={<PollResults />} />
+              <Route path="/admin/:pollId" element={<Admin />} />
+              <Route path="/dev" element={<DevTools />} />
+              <Route path="/testwinnerexplanation" element={<TestWinnerExplanation />} />
+            </Routes>
+          </Box>
+          
+          <Footer />
+        </Box>
       </Router>
     </ThemeProvider>
   );

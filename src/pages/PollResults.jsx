@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -27,21 +27,27 @@ import {
   FormatListNumbered as ListIcon,
   School as SchoolIcon,
   Handshake as HandshakeIcon,
+  SearchOff as NotFoundIcon,
 } from '@mui/icons-material';
 import API from '../services/api';
 import WinnerExplanation from '../components/WinnerExplanation';
 import PollDetails from '../components/PollDetails';
 import { WINNER_TYPE_COLORS } from '../constants/winnerColors';
+import { POLL_SLUGS } from '../constants/pollMappings';
 
 const PollResults = () => {
-  const { pollId } = useParams();
+  const { pollId: urlParam } = useParams();
+  const navigate = useNavigate();
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [results, setResults] = useState(null);
   const [poll, setPoll] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [showExplanation, setShowExplanation] = useState(false);
+
+  const pollId = POLL_SLUGS[urlParam] || urlParam;
 
   // Fetch poll details and results
   const fetchData = async () => {
@@ -54,9 +60,14 @@ const PollResults = () => {
       setPoll(pollResponse.data);
       setResults(resultsResponse.data);
       setError('');
+      setNotFound(false);
     } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load results. Please try again.');
+      if (err.response?.status === 404) {
+        setNotFound(true);
+      } else {
+        console.error('Error fetching data:', err);
+        setError('Failed to load results. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -75,25 +86,59 @@ const PollResults = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress size={60} />
-        </Box>
-      </Container>
+      <Box sx={{ mt: '134.195px', minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
+        <Container maxWidth="lg">
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+            <CircularProgress size={60} />
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <Box sx={{ mt: '134.195px', minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
+        <Container maxWidth="sm">
+          <Paper elevation={0} sx={{ p: 6, textAlign: 'center' }}>
+            <NotFoundIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 3 }} />
+            <Typography variant="h4" gutterBottom>
+              Poll Not Found
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph>
+              Poll with ID "{urlParam}" was not found.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Please check the link and try again, or contact the poll creator.
+            </Typography>
+            <Box mt={4}>
+              <Button 
+                variant="contained" 
+                onClick={() => navigate('/')}
+                size="large"
+              >
+                Go to Home Page
+              </Button>
+            </Box>
+          </Paper>
+        </Container>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error" action={
-          <IconButton onClick={fetchData} size="small">
-            <RefreshIcon />
-          </IconButton>
-        }>
-          {error}
-        </Alert>
-      </Container>
+      <Box sx={{ mt: '134.195px', minHeight: '100vh' }}>
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Alert severity="error" action={
+            <IconButton onClick={fetchData} size="small">
+              <RefreshIcon />
+            </IconButton>
+          }>
+            {error}
+          </Alert>
+        </Container>
+      </Box>
     );
   }
 

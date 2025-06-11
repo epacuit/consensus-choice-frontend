@@ -15,6 +15,7 @@ import {
   Grid,
   FormControlLabel,
   Checkbox,
+  FormHelperText,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -27,7 +28,7 @@ const Feedback = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [generalError, setGeneralError] = useState('');
   
   const [formData, setFormData] = useState({
     type: 'feature',
@@ -38,26 +39,44 @@ const Feedback = () => {
     receive_updates: false,
   });
 
+  const [fieldErrors, setFieldErrors] = useState({
+    subject: '',
+    description: '',
+    email: '',
+  });
+
   const handleChange = (field) => (event) => {
     const value = field === 'receive_updates' ? event.target.checked : event.target.value;
     setFormData({ ...formData, [field]: value });
-    setError('');
+    
+    // Clear field error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors({ ...fieldErrors, [field]: '' });
+    }
+    setGeneralError('');
   };
 
   const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+
     if (!formData.subject.trim()) {
-      setError('Please provide a subject');
-      return false;
+      errors.subject = 'Subject is required';
+      isValid = false;
     }
+
     if (!formData.description.trim()) {
-      setError('Please provide a description');
-      return false;
+      errors.description = 'Description is required';
+      isValid = false;
     }
+
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError('Please provide a valid email address');
-      return false;
+      errors.email = 'Please enter a valid email address';
+      isValid = false;
     }
-    return true;
+
+    setFieldErrors(errors);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
@@ -66,7 +85,7 @@ const Feedback = () => {
     if (!validateForm()) return;
     
     setLoading(true);
-    setError('');
+    setGeneralError('');
     
     try {
       await API.post('/feedback', formData);
@@ -77,7 +96,7 @@ const Feedback = () => {
         navigate('/');
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to submit feedback');
+      setGeneralError(err.response?.data?.detail || 'Failed to submit feedback. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -85,7 +104,6 @@ const Feedback = () => {
 
   if (success) {
     return (
-        
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
         <Container maxWidth="sm">
           <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
@@ -106,17 +124,14 @@ const Feedback = () => {
   }
 
   return (
-    <Box sx={{ mt: '134.195px', minHeight: '100vh',   alignItems: 'center' }}>
-      <Container maxWidth="md">
-        <Paper elevation={0} sx={{ p: { xs: 3, md: 5 } }}>
-          <Box display="flex" alignItems="center" mb={3}>
-            <FeedbackIcon sx={{ fontSize: 40, mr: 2, color: 'primary.main' }} />
-            <Typography variant="h3" component="h1">
-              Submit Feedback
-            </Typography>
-          </Box>
+    <Box sx={{ mt: '134.195px', minHeight: '100vh', alignItems: 'center' }}>
+      <Container maxWidth={false} sx={{ px: { xs: 2, sm: 4, md: 8, lg: 12 } }}>
+        <Paper elevation={0} sx={{ p: { xs: 3, sm: 4, md: 6, lg: 8 }, maxWidth: 1200, mx: 'auto' }}>
+          <Typography variant="h3" component="h1" sx={{ mb: 2 }}>
+            Submit Feedback
+          </Typography>
           
-          <Typography variant="body1" color="text.secondary" paragraph>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 5 }}>
             We value your feedback! Help us improve Consensus Choice Voting by sharing your thoughts, 
             reporting issues, or suggesting new features.
           </Typography>
@@ -157,26 +172,42 @@ const Feedback = () => {
                   value={formData.subject}
                   onChange={handleChange('subject')}
                   placeholder="Brief summary of your feedback"
+                  error={!!fieldErrors.subject}
+                  helperText={fieldErrors.subject}
                 />
               </Grid>
               
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  required
-                  multiline
-                  rows={6}
-                  label="Description"
-                  value={formData.description}
-                  onChange={handleChange('description')}
-                  placeholder={
-                    formData.type === 'bug' 
-                      ? "Please describe what happened, what you expected to happen, and steps to reproduce the issue."
-                      : "Please provide as much detail as possible."
+            </Grid>
+            
+            {/* Description field outside of grid for full width */}
+            <Box sx={{ mt: 4, mb: 4, mx: -2 }}>
+              <TextField
+                fullWidth
+                required
+                multiline
+                rows={10}
+                label="Description"
+                value={formData.description}
+                onChange={handleChange('description')}
+                placeholder={
+                  formData.type === 'bug' 
+                    ? "Please describe what happened, what you expected to happen, and steps to reproduce the issue."
+                    : "Please provide as much detail as possible."
+                }
+                error={!!fieldErrors.description}
+                helperText={fieldErrors.description}
+                sx={{
+                  '& .MuiInputBase-root': {
+                    alignItems: 'flex-start',
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '1.1rem',
                   }
-                />
-              </Grid>
-              
+                }}
+              />
+            </Box>
+            
+            <Grid container spacing={3}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -184,7 +215,8 @@ const Feedback = () => {
                   label="Email Address"
                   value={formData.email}
                   onChange={handleChange('email')}
-                  helperText="Optional - Include if you'd like a response"
+                  helperText={fieldErrors.email || "Optional - Include if you'd like a response"}
+                  error={!!fieldErrors.email}
                 />
               </Grid>
               
@@ -203,9 +235,9 @@ const Feedback = () => {
               )}
             </Grid>
 
-            {error && (
-              <Alert severity="error" sx={{ mt: 3 }}>
-                {error}
+            {generalError && (
+              <Alert severity="error" sx={{ mt: 3 }} onClose={() => setGeneralError('')}>
+                {generalError}
               </Alert>
             )}
 

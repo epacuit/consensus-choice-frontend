@@ -25,9 +25,12 @@ import {
   Send as SendIcon,
   Add as AddIcon,
   PersonAdd as PersonAddIcon,
+  SearchOff as NotFoundIcon,
 } from '@mui/icons-material';
 import API from '../services/api';
 import PollDetails from '../components/PollDetails';
+import { POLL_SLUGS } from '../constants/pollMappings';
+
 
 // Custom styled checkbox to look like ballot circles
 const BallotMark = ({ checked, onChange, candidateId, rank }) => {
@@ -74,7 +77,7 @@ const BallotMark = ({ checked, onChange, candidateId, rank }) => {
 };
 
 const Vote = () => {
-  const { pollId } = useParams();
+  const { pollId: urlParam } = useParams();
   const navigate = useNavigate();
   const pollingInterval = useRef(null);
   
@@ -83,12 +86,16 @@ const Vote = () => {
   const [submitting, setSubmitting] = useState(false);
   const [poll, setPoll] = useState(null);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [success, setSuccess] = useState(false);
   const [tableSelections, setTableSelections] = useState({}); // {candidateId: rank}
   const [displayCandidates, setDisplayCandidates] = useState([]); // Randomized candidates
   const [writeInValue, setWriteInValue] = useState('');
   const [addingWriteIn, setAddingWriteIn] = useState(false);
   
+  // Map the slug to actual ID if it exists in our mappings
+  const pollId = POLL_SLUGS[urlParam] || urlParam;
+
   // Load poll data
   useEffect(() => {
     loadPoll();
@@ -132,8 +139,13 @@ const Vote = () => {
       const response = await API.get(`/polls/${pollId}`);
       setPoll(response.data);
       setLoading(false);
+      setNotFound(false);
     } catch (err) {
-      setError('Failed to load poll. Please check the link and try again.');
+      if (err.response?.status === 404) {
+        setNotFound(true);
+      } else {
+        setError('Failed to load poll. Please check the link and try again.');
+      }
       setLoading(false);
     }
   };
@@ -252,7 +264,7 @@ const Vote = () => {
       
       // Redirect to results after 2 seconds
       setTimeout(() => {
-        navigate(`/results/${pollId}`);
+        navigate(`/results/${urlParam}`);
       }, 2000);
       
     } catch (err) {
@@ -264,17 +276,51 @@ const Vote = () => {
   
   if (loading) {
     return (
-      <Container maxWidth="md" sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress />
-      </Container>
+      <Box sx={{ mt: '134.195px', minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
+        <Container maxWidth="md" sx={{ textAlign: 'center' }}>
+          <CircularProgress size={60} />
+        </Container>
+      </Box>
+    );
+  }
+  
+  if (notFound) {
+    return (
+      <Box sx={{ mt: '134.195px', minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
+        <Container maxWidth="sm">
+          <Paper elevation={0} sx={{ p: 6, textAlign: 'center' }}>
+            <NotFoundIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 3 }} />
+            <Typography variant="h4" gutterBottom>
+              Poll Not Found
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph>
+              Poll with ID "{urlParam}" was not found.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Please check the link and try again, or contact the poll creator.
+            </Typography>
+            <Box mt={4}>
+              <Button 
+                variant="contained" 
+                onClick={() => navigate('/')}
+                size="large"
+              >
+                Go to Home Page
+              </Button>
+            </Box>
+          </Paper>
+        </Container>
+      </Box>
     );
   }
   
   if (!poll) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error">{error}</Alert>
-      </Container>
+      <Box sx={{ mt: '134.195px', minHeight: '100vh' }}>
+        <Container maxWidth="md" sx={{ py: 4 }}>
+          <Alert severity="error">{error}</Alert>
+        </Container>
+      </Box>
     );
   }
   

@@ -90,10 +90,11 @@ const NavigationBar = () => {
         position="fixed" 
         elevation={0}
         sx={{ 
-          backgroundColor: 'rgb(20, 32, 57)',
-          transition: 'transform 0.3s ease-in-out',
-          transform: showNavbar ? 'translateY(0)' : 'translateY(-100%)',
-          boxShadow: 'none',
+          background: 'linear-gradient(135deg, #3a4a6c 0%, #142039 100%)',
+          transition: isHomePage ? 'opacity 0.5s ease-in-out' : 'none',
+          opacity: showNavbar ? 1 : 0,
+          pointerEvents: showNavbar ? 'auto' : 'none',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
         }}
       >
         <Toolbar 
@@ -181,7 +182,7 @@ const NavigationBar = () => {
         sx={{
           '& .MuiDrawer-paper': {
             width: '280px',
-            backgroundColor: 'rgb(20, 32, 57)',
+            background: 'linear-gradient(135deg, #3a4a6c 0%, #142039 100%)',
             color: 'white',
           },
         }}
