@@ -64,7 +64,7 @@ function TabPanel({ children, value, index, ...other }) {
 }
 
 
-const AdminHeader = ({ poll, onNavigate, onLogout, onDeletePoll, onDeleteBallots, analytics })  => {
+const AdminHeader = ({ poll, onNavigate, onLogout, onDeletePoll, onDeleteBallots })  => {
   const theme = useTheme();
   const isSmDown = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -123,16 +123,16 @@ const AdminHeader = ({ poll, onNavigate, onLogout, onDeletePoll, onDeleteBallots
       >
         Delete Poll
       </Button>
-      <Tooltip title={!analytics || analytics.totalVotes === 0 ? "No ballots to clear" : "Delete all votes from this poll"}>
+      <Tooltip title={!poll || poll.vote_count === 0 ? "No ballots to clear" : "Delete all votes from this poll"}>
         <span>
           <Button
             variant="outlined"
             color="warning"
             onClick={onDeleteBallots}
             startIcon={<ClearAllIcon />}
-            disabled={!analytics || analytics.totalVotes === 0}
+            disabled={!poll || poll.vote_count === 0}
           >
-            Clear Ballots {analytics && analytics.totalVotes > 0 && `(${analytics.totalVotes})`}
+            Clear Ballots {poll && poll.vote_count > 0 && `(${poll.vote_count})`}
           </Button>
         </span>
       </Tooltip>
@@ -717,26 +717,27 @@ useEffect(() => {
       setError('Failed to delete poll: ' + (err.response?.data?.detail || err.message));
     }
   };
-  
+    
   const handleDeleteAllBallots = async () => {
     try {
-      const authData = { poll_id: pollId };
+      const params = {};
       
       if (adminSession?.authMethod === 'token' && adminSession?.adminToken) {
-        authData.admin_token = adminSession.adminToken;
+        params.admin_token = adminSession.adminToken;
       } else {
         const urlParams = new URLSearchParams(location.search);
         const tokenFromUrl = urlParams.get('token');
         if (tokenFromUrl) {
-          authData.admin_token = tokenFromUrl;
+          params.admin_token = tokenFromUrl;
         } else {
           setError('No authentication credentials available');
           return;
         }
       }
       
+      // Send auth as query parameters instead of request body
       const response = await API.delete(`/ballots/poll/${pollId}/all`, {
-        data: authData
+        params: params
       });
       
       setSuccess(`Successfully deleted ${response.data.deleted_count} ballots`);
@@ -747,6 +748,7 @@ useEffect(() => {
       await loadPollData();
       await loadAnalytics();
     } catch (err) {
+      console.error('Delete error:', err);
       setError('Failed to delete ballots: ' + (err.response?.data?.detail || err.message));
     }
   };
@@ -791,7 +793,6 @@ console.log('Auth states:', { isAuthenticated, authDialog, loading });
                 onLogout={handleLogout}
                 onDeletePoll={() => setDeletePollDialog(true)}
                 onDeleteBallots={() => setDeleteBallotsDialog(true)}
-                analytics={analytics}
               />
               
               {/* Success/Error Messages */}
@@ -968,8 +969,7 @@ console.log('Auth states:', { isAuthenticated, authDialog, loading });
                 Are you sure you want to delete all ballots for this poll?
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                • {analytics?.totalVotes || 0} regular votes will be deleted<br />
-                • {analytics?.testVotes || 0} test votes will be deleted<br />
+                • {poll?.vote_count || 0} votes will be deleted<br />
                 • The poll will remain active
               </Typography>
             </DialogContent>

@@ -13,10 +13,19 @@ import {
   DialogContent,
   DialogActions,
   LinearProgress,
+  FormControlLabel,
+  Checkbox,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   FileUpload as FileUploadIcon,
   ContentPaste as PasteIcon,
+  Warning as WarningIcon,
+  CheckCircle as CheckIcon,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 import Papa from 'papaparse';
 import API from '../../services/api';
@@ -40,11 +49,45 @@ const AdminBulkImportTab = ({
   const [importProgress, setImportProgress] = useState(0);
   const [importing, setImporting] = useState(false);
   const [parsedData, setParsedData] = useState(null);
+  const [overwriteExisting, setOverwriteExisting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false);
+
+  const validateCandidateNames = (csvCandidates, pollCandidates) => {
+    const errors = [];
+    const pollNames = pollCandidates.map(opt => opt.name.toLowerCase());
+    const csvNamesLower = csvCandidates.map(name => name.toLowerCase());
+    
+    // Check for CSV candidates not in poll
+    csvCandidates.forEach((csvCandidate, index) => {
+      if (!pollNames.includes(csvCandidate.toLowerCase())) {
+        errors.push({
+          type: 'missing_in_poll',
+          message: `CSV candidate "${csvCandidate}" not found in poll options`,
+          candidate: csvCandidate
+        });
+      }
+    });
+    
+    // Check for poll candidates not in CSV
+    pollCandidates.forEach(pollOption => {
+      if (!csvNamesLower.includes(pollOption.name.toLowerCase())) {
+        errors.push({
+          type: 'missing_in_csv',
+          message: `Poll option "${pollOption.name}" not found in CSV headers`,
+          candidate: pollOption.name
+        });
+      }
+    });
+    
+    return errors;
+  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       setImportFile(file);
+      setValidationErrors([]);
       
       Papa.parse(file, {
         complete: (results) => {
@@ -53,6 +96,10 @@ const AdminBulkImportTab = ({
             const rows = results.data.slice(1).filter(row => row.length > 1);
             
             const candidateNames = headers.slice(1).filter(h => h && h.trim());
+            
+            // Validate candidate names
+            const errors = validateCandidateNames(candidateNames, poll.options);
+            setValidationErrors(errors);
             
             let totalBallots = 0;
             let uniqueRankings = 0;
@@ -68,7 +115,8 @@ const AdminBulkImportTab = ({
               candidateNames,
               ballotCount: totalBallots,
               uniqueRankings: uniqueRankings,
-              sampleRows: rows.slice(0, 5)
+              sampleRows: rows.slice(0, 5),
+              hasErrors: errors.length > 0
             };
             
             setParsedData(preview);
@@ -85,6 +133,9 @@ const AdminBulkImportTab = ({
   const handleImportOpen = (method = 'csv') => {
     setImportMethod(method);
     setImportDialog(true);
+    setOverwriteExisting(false);
+    setConfirmOverwrite(false);
+    setValidationErrors([]);
   };
   
   const handleImportClose = () => {
@@ -94,15 +145,30 @@ const AdminBulkImportTab = ({
     setImportData('');
     setImportFile(null);
     setImportProgress(0);
+    setOverwriteExisting(false);
+    setConfirmOverwrite(false);
+    setValidationErrors([]);
   };
 
   const handleBulkImport = async () => {
+    // If overwrite is selected and not yet confirmed, show confirmation
+    if (overwriteExisting && !confirmOverwrite) {
+      setConfirmOverwrite(true);
+      return;
+    }
+    
     setImporting(true);
     
     try {
       const lines = importData.trim().split('\n');
       const headers = lines[0].split(',').map(h => h.trim());
       const candidateNames = headers.slice(1).filter(h => h);
+      
+      // Final validation before import
+      const errors = validateCandidateNames(candidateNames, poll.options);
+      if (errors.length > 0) {
+        throw new Error('Candidate name mismatch. Please fix the CSV headers to match poll options.');
+      }
       
       const nameToOptionId = {};
       poll.options.forEach(option => {
@@ -160,16 +226,18 @@ const AdminBulkImportTab = ({
       const authData = getAuthData();
       const requestData = {
         ...authData,
-        ballots: ballots
+        ballots: ballots,
+        overwrite_existing: overwriteExisting
       };
       
       const response = await API.post('/ballots/bulk-import', requestData);
       
-      logAdminAction('BULK_IMPORT', `Imported ${response.data.imported_count} ballots from ${totalVoterCount} voters`, {
+      logAdminAction('BULK_IMPORT', `Imported ${response.data.imported_count} ballots from ${totalVoterCount} voters${overwriteExisting ? ' (overwrote existing)' : ''}`, {
         method: importMethod,
         count: response.data.imported_count,
         totalVoters: totalVoterCount,
-        filename: importFile?.name
+        filename: importFile?.name,
+        overwrite: overwriteExisting
       });
       
       handleImportClose();
@@ -180,17 +248,24 @@ const AdminBulkImportTab = ({
       onError('Failed to import ballots: ' + (err.response?.data?.detail || err.message));
     } finally {
       setImporting(false);
+      setConfirmOverwrite(false);
     }
   };
 
   const handlePasteDataChange = (e) => {
     setImportData(e.target.value);
+    setValidationErrors([]);
+    
     if (e.target.value.trim()) {
       const lines = e.target.value.trim().split('\n');
       if (lines.length > 1) {
         const headers = lines[0].split(',').map(h => h.trim());
         const candidateNames = headers.slice(1).filter(h => h);
         const rows = lines.slice(1).filter(line => line.split(',').length > 1);
+        
+        // Validate candidate names
+        const errors = validateCandidateNames(candidateNames, poll.options);
+        setValidationErrors(errors);
         
         let totalBallots = 0;
         let uniqueRankings = 0;
@@ -206,12 +281,21 @@ const AdminBulkImportTab = ({
         setParsedData({
           candidateNames,
           ballotCount: totalBallots,
-          uniqueRankings: uniqueRankings
+          uniqueRankings: uniqueRankings,
+          hasErrors: errors.length > 0
         });
       }
     } else {
       setParsedData(null);
     }
+  };
+
+  const canImport = () => {
+    if (importing) return false;
+    if (importMethod === 'csv' && !importFile) return false;
+    if (importMethod === 'paste' && !importData.trim()) return false;
+    if (validationErrors.length > 0) return false;
+    return true;
   };
 
   return (
@@ -288,6 +372,7 @@ const AdminBulkImportTab = ({
               <li>First column: number of voters who submitted this ranking (blank = 1)</li>
               <li>Values should be rankings (1 = first choice, 2 = second choice, etc.)</li>
               <li>Leave cells empty for unranked options</li>
+              <li><strong>Headers must exactly match poll option names (case-insensitive)</strong></li>
             </ul>
           </Typography>
           <Typography variant="body2" sx={{ mt: 1 }}>
@@ -334,7 +419,7 @@ const AdminBulkImportTab = ({
                   Selected: {importFile.name}
                 </Alert>
               )}
-              {parsedData && (
+              {parsedData && !parsedData.hasErrors && (
                 <Alert severity="info" sx={{ mb: 2 }}>
                   <Typography variant="body2">
                     <strong>File Preview:</strong><br />
@@ -361,7 +446,7 @@ const AdminBulkImportTab = ({
                 value={importData}
                 onChange={handlePasteDataChange}
               />
-              {parsedData && (
+              {parsedData && !parsedData.hasErrors && (
                 <Alert severity="info" sx={{ mt: 2 }}>
                   <Typography variant="body2">
                     <strong>Data Preview:</strong><br />
@@ -374,11 +459,74 @@ const AdminBulkImportTab = ({
             </Box>
           )}
           
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Candidate Name Mismatches:
+              </Typography>
+              <List dense>
+                {validationErrors.map((error, index) => (
+                  <ListItem key={index}>
+                    <ListItemIcon>
+                      <ErrorIcon color="error" fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText primary={error.message} />
+                  </ListItem>
+                ))}
+              </List>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Please ensure CSV headers exactly match poll option names (case-insensitive).
+              </Typography>
+            </Alert>
+          )}
+          
+          {/* Overwrite Option */}
+          {!confirmOverwrite && (
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={overwriteExisting}
+                    onChange={(e) => setOverwriteExisting(e.target.checked)}
+                    color="warning"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body1">
+                      Overwrite existing ballots
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Warning: This will delete all existing ballots before importing new ones
+                    </Typography>
+                  </Box>
+                }
+              />
+            </Box>
+          )}
+          
+          {/* Overwrite Confirmation */}
+          {confirmOverwrite && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Confirm Overwrite</strong>
+              </Typography>
+              <Typography variant="body2">
+                This will permanently delete all existing ballots for this poll and replace them with the imported data.
+                This action cannot be undone.
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Are you sure you want to continue?
+              </Typography>
+            </Alert>
+          )}
+          
           {importing && (
             <Box mt={2}>
               <LinearProgress variant="determinate" value={importProgress} />
               <Typography variant="body2" color="text.secondary" align="center" mt={1}>
-                Importing... {Math.round(importProgress)}%
+                {overwriteExisting ? 'Overwriting and importing...' : 'Importing...'} {Math.round(importProgress)}%
               </Typography>
             </Box>
           )}
@@ -387,17 +535,33 @@ const AdminBulkImportTab = ({
           <Button onClick={handleImportClose} disabled={importing}>
             Cancel
           </Button>
-          <Button
-            onClick={handleBulkImport}
-            variant="contained"
-            disabled={
-              importing ||
-              (importMethod === 'csv' && !importFile) ||
-              (importMethod === 'paste' && !importData.trim())
-            }
-          >
-            Import Ballots
-          </Button>
+          {confirmOverwrite ? (
+            <>
+              <Button
+                onClick={() => setConfirmOverwrite(false)}
+                disabled={importing}
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleBulkImport}
+                variant="contained"
+                color="error"
+                disabled={!canImport()}
+              >
+                Confirm Overwrite & Import
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={handleBulkImport}
+              variant="contained"
+              disabled={!canImport()}
+              color={overwriteExisting ? "warning" : "primary"}
+            >
+              {overwriteExisting ? 'Overwrite & Import' : 'Import Ballots'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </>

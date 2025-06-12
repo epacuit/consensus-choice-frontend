@@ -146,8 +146,8 @@ const PollResults = () => {
     return null;
   }
 
-  // Check if there are no ballots
-  if (results.total_ballots === 0) {
+  // Check if there are no votes (use total_voters, not total_ballots)
+  if (results.total_voters === 0) {
     return (
       <Box sx={{ mt: '134.195px', minHeight: '100vh' }}>
         <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -257,7 +257,7 @@ const getWinnerTitle = () => {
       
       const numRanked = rankedCandidates.size;
       
-      // Categorize the ballot
+      // Categorize the ballot (using count properly)
       if (numRanked === 1) {
         bulletVotes += ballotType.count;
       } else if (numRanked === totalCandidates) {
@@ -388,20 +388,25 @@ const getWinnerTitle = () => {
       {/* Statistics Cards */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
         <Grid container spacing={5} maxWidth={600}>
-          {/* Total Ballots */}
+          {/* Total Votes */}
           <Grid item xs={12} md={6}>
             <Card elevation={0} sx={{ height: '100%' }}>
               <CardContent sx={{ textAlign: 'center' }}>
                 <Box display="flex" alignItems="center" justifyContent="center" mb={2}>
                   <PeopleIcon sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6">Total Ballots</Typography>
+                  <Typography variant="h6">Total Votes</Typography>
                 </Box>
                 <Typography variant="h3" color="primary.main">
-                  {results.total_ballots}
+                  {results.total_voters}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Submitted votes
                 </Typography>
+                {results.total_ballots !== results.total_voters && (
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                    ({results.total_ballots} ballot records)
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
@@ -445,7 +450,7 @@ const getWinnerTitle = () => {
           
           <Box sx={{ width: '100%' }}>
             {ballotTypeData.map((item, index) => {
-              const percentage = (item.value / results.total_ballots) * 100;
+              const percentage = (item.value / results.total_voters) * 100;
               return (
                 <Box key={index} sx={{ mb: 3 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>

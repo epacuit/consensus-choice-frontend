@@ -135,29 +135,9 @@ const About = () => {
           </Typography>
           
           <Typography variant="body1" color="text.secondary" paragraph sx={{ fontSize: '1.125rem', lineHeight: 1.7 }}>
-            In the unlikely case that there is not a single candidate who beats all others:
+            In the unlikely event that there is no candidate who beats all others, we choose the candidate with the best win-loss record. If multiple candidates tie for the best win-loss record, we choose the one whose worst loss is smallest.
           </Typography>
           
-          <List>
-            <ListItem sx={{ pl: 4 }}>
-              <ListItemText 
-                primary="First, we look for candidates who don't lose to anyone (they may have ties)"
-                primaryTypographyProps={{ fontSize: '1.125rem' }}
-              />
-            </ListItem>
-            <ListItem sx={{ pl: 4 }}>
-              <ListItemText 
-                primary="If multiple candidates meet this criteria, we select the one with the most wins overall"
-                primaryTypographyProps={{ fontSize: '1.125rem' }}
-              />
-            </ListItem>
-            <ListItem sx={{ pl: 4 }}>
-              <ListItemText 
-                primary="As a final tiebreaker, we choose the candidate whose worst defeat is the smallest"
-                primaryTypographyProps={{ fontSize: '1.125rem' }}
-              />
-            </ListItem>
-          </List>
         </Box>
 
         {/* Traditional Voting vs Consensus Choice */}
